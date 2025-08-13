@@ -1,0 +1,50 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="ac" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="30" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- decorative grid -->
+  <g opacity="0.08">
+    <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#93c5fd" stroke-width="1"/>
+    </pattern></defs>
+    <rect width="1200" height="630" fill="url(#grid)"/>
+  </g>
+  <!-- icon -->
+  <g transform="translate(860,140)" filter="url(#glow)">
+    <rect x="0" y="120" width="240" height="140" rx="24" fill="#0ea5e9"/>
+    <rect x="170" y="90" width="50" height="50" rx="10" fill="#93c5fd"/>
+    <rect x="112" y="90" width="50" height="50" rx="10" fill="#93c5fd"/>
+    <rect x="64" y="64" width="120" height="28" rx="8" fill="#38bdf8"/>
+  </g>
+  <!-- title -->
+  <text x="80" y="220" font-family="Inter, Segoe UI, Roboto, Arial" font-size="68" fill="url(#ac)" letter-spacing="1.5">
+    LutziVentoyCaster
+  </text>
+  <text x="80" y="280" font-family="SF Mono, Menlo, Consolas, monospace" font-size="32" fill="#cbd5e1" letter-spacing="1">
+    Cast bootable ISOs to USB (Ventoy)
+  </text>
+  <!-- bullets -->
+  <g font-family="Inter, Segoe UI, Roboto, Arial" font-size="26" fill="#9ca3af">
+    <text x="80" y="350">• UEFI (GPT) / Legacy (MBR)</text>
+    <text x="80" y="390">• Re-use existing Ventoy disks — or clean install</text>
+    <text x="80" y="430">• Auto-detect local .iso/.img in working folder</text>
+    <text x="80" y="470">• Optional SHA256 verification</text>
+  </g>
+  <!-- tag -->
+  <rect x="80" y="500" rx="10" ry="10" width="420" height="48" fill="#111827" stroke="#334155"/>
+  <text x="96" y="532" font-family="SF Mono, Menlo, Consolas, monospace" font-size="22" fill="#93c5fd">
+    repo: github.com/LutziGoz/LutziVentoyCaster
+  </text>
+</svg>
