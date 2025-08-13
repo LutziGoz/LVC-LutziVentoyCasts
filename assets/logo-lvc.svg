@@ -19,7 +19,7 @@
     <defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
       <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#93c5fd" stroke-width="1"/>
     </pattern></defs>
-    <rect width="1200" height="630" fill="url(#grid)"/>
+    <rect width="2000" height="900" fill="url(#grid)"/>
   </g>
   <!-- icon -->
   <g transform="translate(860,140)" filter="url(#glow)">
