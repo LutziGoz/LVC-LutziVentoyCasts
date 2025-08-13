@@ -1,21 +1,143 @@
-MIT License
 
-Copyright (c) 2025 LutziGoz
+---
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### `lz-ventoy-usb.sh`
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+VENTOY_VERSION="1.0.99"
+VENTOY_URL="https://github.com/ventoy/Ventoy/releases/download/v${VENTOY_VERSION}/ventoy-${VENTOY_VERSION}-linux.tar.gz"
+VENTOY_DIR="ventoy-${VENTOY_VERSION}"
+BASE_DIR="$(pwd)"
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing: $1"; exit 1; }; }
+need sudo; need lsblk; need awk; need blkid; need tar
+if command -v curl >/dev/null; then DL="curl -L -o"; else need wget; DL="wget -O"; fi
+
+die(){ echo "[-] $*" >&2; exit 1; }
+
+ensure_root(){
+  if [[ $EUID -ne 0 ]]; then
+    sudo -v || die "sudo required"
+    exec sudo --preserve-env=VENTOY_VERSION,VENTOY_URL,VENTOY_DIR,BASE_DIR,BASH "$0" "$@"
+  fi
+}
+ensure_root "$@"
+
+echo "===== LutziVentoyCaster ====="
+
+select_usb() {
+  while true; do
+    echo "[*] Scanning removable USB drives…"
+    # removable=1 and non-rotational if available; filter size >= 4G
+    mapfile -t DEVS < <(lsblk -dn -o NAME,TYPE,SIZE,RM | awk '$2=="disk" && $4==1 {print $1}')
+    [[ ${#DEVS[@]} -eq 0 ]] && { echo "No USB disks. Plug one and press ENTER."; read -r; continue; }
+
+    echo "Available USB disks:"
+    i=1
+    for d in "${DEVS[@]}"; do
+      sz=$(lsblk -dn -o SIZE "/dev/$d")
+      model=$(lsblk -dn -o MODEL "/dev/$d" 2>/dev/null || true)
+      echo "  $i) /dev/$d  [$sz]  $model"
+      ((i++))
+    done
+    read -rp "Select disk # to use: " idx
+    [[ $idx =~ ^[0-9]+$ ]] || { echo "Invalid."; continue; }
+    (( idx>=1 && idx<=${#DEVS[@]} )) || { echo "Out of range."; continue; }
+    USB_DEV="${DEVS[$((idx-1))]}"
+
+    echo ">>> WARNING: /dev/${USB_DEV} will be modified."
+    read -rp "Type 'YES' to proceed: " c; [[ "$c" == "YES" ]] && break
+  done
+}
+
+check_ventoy() {
+  blkid "/dev/${USB_DEV}1" 2>/dev/null | grep -qi ventoy
+}
+
+mount_ventoy() {
+  mkdir -p /mnt/ventoy
+  mount "/dev/${USB_DEV}1" /mnt/ventoy
+}
+
+umount_any() {
+  umount "/dev/${USB_DEV}"* 2>/dev/null || true
+}
+
+get_iso() {
+  echo "ISO source:"
+  echo "  1) Use existing local ISO"
+  echo "  2) Provide a direct URL"
+  read -rp "Choose [1/2]: " src
+  case "$src" in
+    1)
+      mapfile -t ISOS < <(ls -1 *.iso *.img 2>/dev/null || true)
+      [[ ${#ISOS[@]} -gt 0 ]] || die "No *.iso/*.img in $(pwd)."
+      echo "Local ISOs:"
+      select ISO_NAME in "${ISOS[@]}"; do [[ -n "$ISO_NAME" ]] && break; done
+      ;;
+    2)
+      read -rp "Paste ISO URL: " ISO_URL
+      [[ -n "$ISO_URL" ]] || die "Empty URL."
+      ISO_NAME="$(basename "${ISO_URL%%\?*}")"
+      [[ -f "$ISO_NAME" ]] && { read -rp "'$ISO_NAME' exists. Re-download? [y/N]: " r; [[ "$r" =~ ^[Yy]$ ]] && rm -f "$ISO_NAME"; }
+      [[ -f "$ISO_NAME" ]] || { echo "[*] Downloading $ISO_NAME"; $DL "$ISO_NAME" "$ISO_URL"; }
+      ;;
+    *) die "Invalid choice." ;;
+  esac
+
+  read -rp "Provide expected SHA256 (optional, ENTER to skip): " EXPECTED
+  if [[ -n "${EXPECTED:-}" ]]; then
+    need sha256sum
+    SUM=$(sha256sum "$ISO_NAME" | awk '{print $1}')
+    [[ "$SUM" == "$EXPECTED" ]] || die "Checksum mismatch. Got $SUM"
+    echo "[+] SHA256 verified."
+  fi
+}
+
+install_or_reuse_ventoy() {
+  if check_ventoy; then
+    echo "[+] Ventoy detected on /dev/${USB_DEV}1"
+    read -rp "Copy ISO without formatting? [y/N]: " yn
+    if [[ "$yn" =~ ^[Yy]$ ]]; then
+      mount_ventoy
+      cp -v "$BASE_DIR/$ISO_NAME" /mnt/ventoy/
+      sync; umount /mnt/ventoy
+      echo "[+] ISO copied."
+      exit 0
+    fi
+  fi
+
+  read -rp "Install/refresh Ventoy (DESTROYS data on /dev/${USB_DEV})? [type INSTALL]: " ack
+  [[ "$ack" == "INSTALL" ]] || die "Aborted."
+
+  umount_any
+
+  if [[ ! -d "$VENTOY_DIR" ]]; then
+    TMP="ventoy-${VENTOY_VERSION}-linux.tar.gz"
+    [[ -f "$TMP" ]] || { echo "[*] Fetch Ventoy"; $DL "$TMP" "$VENTOY_URL"; }
+    tar -xzf "$TMP"
+  fi
+
+  pushd "$VENTOY_DIR" >/dev/null
+  echo "Mode:"
+  echo "  1) GPT / UEFI"
+  echo "  2) MBR / Legacy"
+  read -rp "Choose [1/2]: " mode
+  if [[ "$mode" == "1" ]]; then
+    ./Ventoy2Disk.sh -I -g "/dev/${USB_DEV}"
+  else
+    ./Ventoy2Disk.sh -I "/dev/${USB_DEV}"
+  fi
+  popd >/dev/null
+
+  mount_ventoy
+  cp -v "$BASE_DIR/$ISO_NAME" /mnt/ventoy/
+  sync; umount /mnt/ventoy
+  echo "✅ Done."
+}
+
+select_usb
+get_iso
+install_or_reuse_ventoy
