@@ -1,5 +1,5 @@
 # LutziVentoyCaster
-<img src="assets/logo-lvc.svg" width="160" alt="LVC logo">
+<img src="assets/logo-lvc.svg" width="360" alt="LVC logo">
 
 Cast Windows/Linux ISOs onto a USB drive using Ventoy — safely, fast, repeatable.
 - Interactive device selection (guards against nuking your system disk)
@@ -8,7 +8,7 @@ Cast Windows/Linux ISOs onto a USB drive using Ventoy — safely, fast, repeatab
 - Optional SHA256 verification for ISOs
 - Pure Bash, no magic
   
-<img src="assets/og-lvc-card.svg" width="160" alt="LVC logo">
+<img src="assets/og-lvc-card.svg" width="360" alt="LVC logo">
 
 
 Windows USB Creator (Ventoy-based)
