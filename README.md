@@ -1,4 +1,4 @@
-# LutziVentoyCaster
+# LutziVentoyCasts
 
 Cast Windows/Linux ISOs onto a USB drive using Ventoy — safely, fast, repeatable.
 - Interactive device selection (guards against nuking your system disk)
