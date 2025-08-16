@@ -64,7 +64,7 @@ Features
 
 #License
 
-#MIT License — Free to use, modify, and share.
+#MIT License.
 #Copyright By LutziGoz
 https://lutzigoz.com
 lutzigoz@lutzigoz.com
