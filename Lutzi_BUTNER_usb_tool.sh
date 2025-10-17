@@ -114,7 +114,7 @@ sudo umount "/dev/${USB_DEV}"* 2>/dev/null
 cd "$VENTOY_DIR"
 
 if [ "$burn_choice" == "1" ]; then
-    sudo ./Ventoy2Disk.sh -i -g /dev/$USB_DEV
+    sudo ./Ventoy2Disk.sh -i -g -s /dev/$USB_DEV
 else
     sudo ./Ventoy2Disk.sh -i /dev/$USB_DEV
 fi
